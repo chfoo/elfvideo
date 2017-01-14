@@ -1,5 +1,5 @@
 # elfvideo
-Script to generate TwitchPlaysPokemon Viet Crystal compilation video
+Script to generate TwitchPlaysPokemon Viet Crystal timelapse compilation video
 
 
 ## Usage
@@ -13,6 +13,10 @@ Run:
 
         python3 elfvideo.py ./input_dir/ ./output_dir/
 
+## Images
+
+* Viet crystal: https://archive.org/details/tpp_elf_images
+* Ultra romhack: 
 
 ## Credits
 
