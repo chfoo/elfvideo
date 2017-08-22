@@ -18,7 +18,7 @@ Run:
 
 **This is work in progress. Not yet complete.**
 
-PMD is a bit more complicated.
+PMD is a bit more complicated but most of the data is already included or available as a easy download.
 
 Requires in addition:
 
@@ -27,13 +27,16 @@ Requires in addition:
 * [tppocr](https://github.com/chfoo/tppocr)
 * [arrow](https://arrow.readthedocs.io/en/latest/)
 
-Run:
+To do the whole thing from scratch, run:
 
 1. `python3 pmdred/pull_api.py inputs.db`
 2. `python3 pmdred/unpack.py tpp_pmdrrt_screenshots.7z images/`
 3. `python3 twitch/get_vod_list.py json/`
 4. `python3 twitch/json_to_db.py json/ vods.db`
-5. TOOD
+5. `python3 pmdred/get_missing_frames.py images/ inputs.db vods.db`
+6. TODO
+
+If you just want to generate the video, do the last step above.
 
 
 ## Images

@@ -5,6 +5,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import sys
 
 import arrow
 import requests
@@ -129,6 +130,10 @@ def main():
             segment_duration = None
             # _logger.info('  %s', current_time)
             # _logger.info('  %s', duration)
+
+    if not segment_url:
+        _logger.error('Could not get a segment URL. Playlist too short.')
+        sys.exit(14)
 
     _logger.info('Downloading')
 

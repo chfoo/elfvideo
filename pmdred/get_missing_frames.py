@@ -69,16 +69,23 @@ def main():
         os.makedirs(os.path.join(args.image_dir, 'ts'), exist_ok=True)
         transport_file = os.path.join(args.image_dir, 'ts', '{}.ts'.format(frame))
 
-        subprocess.check_call([
-            sys.executable,
-            os.path.join(
-                os.path.dirname(__file__),
-                '..', 'twitch', 'get_vod_clip.py'
-            ),
-            args.vod_database,
-            target_date.isoformat(),
-            transport_file
-        ])
+        try:
+            subprocess.check_call([
+                sys.executable,
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '..', 'twitch', 'get_vod_clip.py'
+                ),
+                args.vod_database,
+                target_date.isoformat(),
+                transport_file
+            ])
+        except subprocess.CalledProcessError as error:
+            if error.returncode == 14:
+                _logger.warning('***Could not get a segment for frame %s***', frame)
+                continue
+            else:
+                raise
 
         _logger.info('Extracting frame')
 
@@ -116,7 +123,7 @@ def main():
         match = re.search(r'(\d{4}).(\d\d).(\d\d).(\d\d).(\d\d).(\d\d)', result)
 
         if not match:
-            print('***Could not get a date for frame {}***'.format(frame))
+            _logger.warning('***Could not get a date for frame %s***', frame)
             continue
 
         ocr_date = arrow.get('{}-{}-{}T{}:{}:{}'.format(
@@ -138,16 +145,23 @@ def main():
         _logger.info('Getting corrected frame')
         transport_file = os.path.join(args.image_dir, 'ts', '{}_cor.ts'.format(frame))
 
-        subprocess.check_call([
-            sys.executable,
-            os.path.join(
-                os.path.dirname(__file__),
-                '..', 'twitch', 'get_vod_clip.py'
-            ),
-            args.vod_database,
-            new_date.isoformat(),
-            transport_file
-        ])
+        try:
+            subprocess.check_call([
+                sys.executable,
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '..', 'twitch', 'get_vod_clip.py'
+                ),
+                args.vod_database,
+                new_date.isoformat(),
+                transport_file
+            ])
+        except subprocess.CalledProcessError as error:
+            if error.returncode == 14:
+                _logger.warning('***Could not get a segment for frame %s***', frame)
+                continue
+            else:
+                raise
 
         frame_file = transport_file + '.png'
 
