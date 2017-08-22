@@ -7,11 +7,34 @@ Script to generate TwitchPlaysPokemon Viet Crystal (and others) timelapse compil
 Requires:
 
 * Python 3.4+
+* [PIL](https://pillow.readthedocs.io)
 * PyCairo
 
 Run:
 
         python3 elfvideo.py ./input_dir/ ./output_dir/
+
+### PMD
+
+**This is work in progress. Not yet complete.**
+
+PMD is a bit more complicated.
+
+Requires in addition:
+
+* youtube-dl
+* ffmpeg
+* [tppocr](https://github.com/chfoo/tppocr)
+* [arrow](https://arrow.readthedocs.io/en/latest/)
+
+Run:
+
+1. `python3 pmdred/pull_api.py inputs.db`
+2. `python3 pmdred/unpack.py tpp_pmdrrt_screenshots.7z images/`
+3. `python3 twitch/get_vod_list.py json/`
+4. `python3 twitch/json_to_db.py json/ vods.db`
+5. TOOD
+
 
 ## Images
 

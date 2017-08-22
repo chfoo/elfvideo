@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import logging
 import os
 import re
 import sqlite3
@@ -8,8 +9,12 @@ import subprocess
 import arrow
 import requests
 
+_logger = logging.getLogger(__name__)
+
 
 def main():
+    logging.basicConfig(level=logging.INFO)
+
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('vod_database')
     arg_parser.add_argument('date')
@@ -24,7 +29,7 @@ def main():
 
     datetime_obj = arrow.get(args.date)
 
-    print('Getting VOD ID from database')
+    _logger.info('Getting VOD ID from database')
 
     row = database.execute('''
         SELECT id, recorded_at, length
@@ -34,7 +39,7 @@ def main():
         LIMIT 1 
     ''', (datetime_obj.isoformat(),)).fetchone()
 
-    print('\t', row)
+    _logger.info('  %s', row)
 
     offset = datetime_obj - arrow.get(row[1])
 
@@ -44,14 +49,14 @@ def main():
         row[0],
         hours, minutes, seconds
     )
-    print('\t', web_url)
+    _logger.info('  %s', web_url)
 
     video_id = row[0]
     playlist_path = os.path.join(args.cache_dir, str(video_id))
     playlist_url_path = os.path.join(args.cache_dir, str(video_id) + '_url')
 
     if os.path.exists(playlist_path):
-        print('Using cached playlist')
+        _logger.info('Using cached playlist')
 
         with open(playlist_path) as file:
             playlist = file.read()
@@ -59,23 +64,23 @@ def main():
         with open(playlist_url_path) as file:
             playlist_url = file.read()
     else:
-        print('Getting VOD url')
+        _logger.info('Getting VOD url')
 
         playlist_url = subprocess.check_output([
             'youtube-dl', '--get-url',
             'https://www.twitch.tv/videos/{}'.format(row[0])
         ]).decode('utf8').strip()
 
-        print('\t', playlist_url)
+        _logger.info('  %s', playlist_url)
 
-        print('Download playlist')
+        _logger.info('Download playlist')
 
         response = requests.get(playlist_url)
         response.raise_for_status()
 
         playlist = response.content.decode('utf8', 'replace')
 
-        print('\t Size', len(playlist))
+        _logger.info('  Size %s', len(playlist))
 
         with open(playlist_path, 'w') as file:
             file.write(playlist)
@@ -95,7 +100,7 @@ def main():
         if line.startswith('#ID3-EQUIV-TDTG'):
             pass
             # start_time = arrow.get(line[15:])
-            # print('\t', 'Found start time', start_time)
+            # _logger.info('  Found start time %s', start_time)
         elif line.startswith('#EXTINF:'):
             assert segment_duration is None, segment_duration
             segment_duration = float(
@@ -116,16 +121,16 @@ def main():
                     playlist_url.rsplit('/', 1)[0], segment_filename
                 )
 
-                print('Found segment URL', segment_url)
-                print('\t', current_time, datetime_obj, segment_end_time)
+                _logger.info('Found segment URL %s', segment_url)
+                _logger.info('  %s %s %s', current_time, datetime_obj, segment_end_time)
                 break
 
             duration += segment_duration
             segment_duration = None
-            # print('\t', current_time)
-            # print('\t', duration)
+            # _logger.info('  %s', current_time)
+            # _logger.info('  %s', duration)
 
-    print('Downloading')
+    _logger.info('Downloading')
 
     response = requests.get(segment_url)
     response.raise_for_status()
@@ -134,7 +139,7 @@ def main():
         for data in response.iter_content(4096):
             file.write(data)
 
-    print('Done')
+    _logger.info('Done')
 
 
 if __name__ == '__main__':
