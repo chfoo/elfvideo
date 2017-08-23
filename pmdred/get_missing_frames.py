@@ -9,6 +9,7 @@ import sys
 
 import PIL.Image
 import arrow
+import arrow.parser
 
 _logger = logging.getLogger(__name__)
 
@@ -54,6 +55,12 @@ def main():
         if os.path.exists(image_path):
             continue
 
+        os.makedirs(os.path.join(args.image_dir, 'ts'), exist_ok=True)
+        transport_file = os.path.join(args.image_dir, 'ts', '{}.ts'.format(frame))
+
+        if os.path.exists(transport_file):
+            continue
+
         _logger.info('Getting missing frame {}'.format(frame))
 
         row = inputs_db.execute('''
@@ -65,9 +72,6 @@ def main():
         target_date += datetime.timedelta(seconds=4)  # adjust for countdown timer
 
         _logger.info('  %s %s', date_str, target_date)
-
-        os.makedirs(os.path.join(args.image_dir, 'ts'), exist_ok=True)
-        transport_file = os.path.join(args.image_dir, 'ts', '{}.ts'.format(frame))
 
         try:
             subprocess.check_call([
@@ -126,18 +130,27 @@ def main():
             _logger.warning('***Could not get a date for frame %s***', frame)
             continue
 
-        ocr_date = arrow.get('{}-{}-{}T{}:{}:{}'.format(
-            match.group(1),
-            match.group(2),
-            match.group(3),
-            match.group(4),
-            match.group(5),
-            match.group(6),
-        ))
+        try:
+            ocr_date = arrow.get('{}-{}-{}T{}:{}:{}'.format(
+                match.group(1),
+                match.group(2),
+                match.group(3),
+                match.group(4),
+                match.group(5),
+                match.group(6),
+            ))
+        except arrow.parser.ParserError as error:
+            _logger.warning('***Could not get a date for frame %s***', frame)
+            continue
 
         _logger.info('  %s', ocr_date)
 
         delta = target_date - ocr_date
+
+        if delta.total_seconds() > 120:
+            _logger.warning('***Date delta too high frame %s***', frame)
+            continue
+
         new_date = target_date + delta
 
         _logger.info('  Delta: %s  New date: %s', delta, new_date)
