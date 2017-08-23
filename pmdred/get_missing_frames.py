@@ -91,6 +91,10 @@ def main():
             else:
                 raise
 
+        if os.path.getsize(transport_file) == 0:
+            _logger.warning('***Segment was 0 sized for frame %s***', frame)
+            continue
+
         _logger.info('Extracting frame')
 
         frame_file = transport_file + '.png'
@@ -155,26 +159,31 @@ def main():
 
         _logger.info('  Delta: %s  New date: %s', delta, new_date)
 
-        _logger.info('Getting corrected frame')
-        transport_file = os.path.join(args.image_dir, 'ts', '{}_cor.ts'.format(frame))
+        if delta.total_seconds() >= 2:
+            _logger.info('Getting corrected frame')
+            transport_file = os.path.join(args.image_dir, 'ts', '{}_cor.ts'.format(frame))
 
-        try:
-            subprocess.check_call([
-                sys.executable,
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '..', 'twitch', 'get_vod_clip.py'
-                ),
-                args.vod_database,
-                new_date.isoformat(),
-                transport_file
-            ])
-        except subprocess.CalledProcessError as error:
-            if error.returncode == 14:
-                _logger.warning('***Could not get a segment for frame %s***', frame)
+            try:
+                subprocess.check_call([
+                    sys.executable,
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        '..', 'twitch', 'get_vod_clip.py'
+                    ),
+                    args.vod_database,
+                    new_date.isoformat(),
+                    transport_file
+                ])
+            except subprocess.CalledProcessError as error:
+                if error.returncode == 14:
+                    _logger.warning('***Could not get a segment for frame %s***', frame)
+                    continue
+                else:
+                    raise
+
+            if os.path.getsize(transport_file) == 0:
+                _logger.warning('***Segment part 2 was 0 sized for frame %s***', frame)
                 continue
-            else:
-                raise
 
         frame_file = transport_file + '.png'
 
