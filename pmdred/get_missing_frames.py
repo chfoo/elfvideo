@@ -49,17 +49,14 @@ def main():
         for line in file:
             missing_frames.append(int(line.strip()))
 
+    delta = None
+    old_delta = None
+
     for frame in missing_frames:
         image_path = os.path.join(args.image_dir, '{}.v.png'.format(frame))
 
-        if os.path.exists(image_path):
-            continue
-
         os.makedirs(os.path.join(args.image_dir, 'ts'), exist_ok=True)
         transport_file = os.path.join(args.image_dir, 'ts', '{}.ts'.format(frame))
-
-        if os.path.exists(transport_file):
-            continue
 
         _logger.info('Getting missing frame {}'.format(frame))
 
@@ -73,49 +70,51 @@ def main():
 
         _logger.info('  %s %s', date_str, target_date)
 
-        try:
-            subprocess.check_call([
-                sys.executable,
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '..', 'twitch', 'get_vod_clip.py'
-                ),
-                args.vod_database,
-                target_date.isoformat(),
-                transport_file
-            ])
-        except subprocess.CalledProcessError as error:
-            if error.returncode == 14:
-                _logger.warning('***Could not get a segment for frame %s***', frame)
-                continue
-            else:
-                raise
+        if not os.path.exists(transport_file):
+            try:
+                subprocess.check_call([
+                    sys.executable,
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        '..', 'twitch', 'get_vod_clip.py'
+                    ),
+                    args.vod_database,
+                    target_date.isoformat(),
+                    transport_file
+                ])
+            except subprocess.CalledProcessError as error:
+                if error.returncode == 14:
+                    _logger.warning('***Could not get a segment for frame %s***', frame)
+                    continue
+                else:
+                    raise
 
         if os.path.getsize(transport_file) == 0:
             _logger.warning('***Segment was 0 sized for frame %s***', frame)
             continue
 
-        _logger.info('Extracting frame')
-
         frame_file = transport_file + '.png'
         timestamp_image_path = transport_file + '_crop.png'
 
-        subprocess.check_call([
-            'ffmpeg',
-            '-i', transport_file, '-vframes', '1', frame_file,
-            '-v', 'warning', '-y'
-        ])
+        if not os.path.exists(frame_file):
+            _logger.info('Extracting frame')
 
-        _logger.info('Cropping date time')
+            subprocess.check_call([
+                'ffmpeg',
+                '-i', transport_file, '-vframes', '1', frame_file,
+                '-v', 'warning', '-y'
+            ])
 
-        image = PIL.Image.open(frame_file)
-        cropped_image = image.crop((
-            int(image.width * 165 / 1920),
-            int(image.height * 1040 / 1080),
-            int(image.width * 442 / 1920),
-            int(image.height * 1075 / 1080),
-        ))
-        cropped_image.save(timestamp_image_path)
+            _logger.info('Cropping date time')
+
+            image = PIL.Image.open(frame_file)
+            cropped_image = image.crop((
+                int(image.width * 165 / 1920),
+                int(image.height * 1040 / 1080),
+                int(image.width * 442 / 1920),
+                int(image.height * 1075 / 1080),
+            ))
+            cropped_image.save(timestamp_image_path)
 
         _logger.info('Getting date')
 
@@ -130,29 +129,36 @@ def main():
 
         match = re.search(r'(\d{4}).(\d\d).(\d\d).(\d\d).(\d\d).(\d\d)', result)
 
-        if not match:
+        if match:
+            try:
+                ocr_date = arrow.get('{}-{}-{}T{}:{}:{}'.format(
+                    match.group(1),
+                    match.group(2),
+                    match.group(3),
+                    match.group(4),
+                    match.group(5),
+                    match.group(6),
+                ))
+            except arrow.parser.ParserError as error:
+                _logger.warning('***Could not get a date for frame %s***', frame)
+                continue
+
+            _logger.info('  %s', ocr_date)
+
+            old_delta = delta
+            delta = target_date - ocr_date
+        elif delta is not None:
+            _logger.warning('Could not get a date for frame %s. Using old delta', frame)
+        else:
             _logger.warning('***Could not get a date for frame %s***', frame)
             continue
-
-        try:
-            ocr_date = arrow.get('{}-{}-{}T{}:{}:{}'.format(
-                match.group(1),
-                match.group(2),
-                match.group(3),
-                match.group(4),
-                match.group(5),
-                match.group(6),
-            ))
-        except arrow.parser.ParserError as error:
-            _logger.warning('***Could not get a date for frame %s***', frame)
-            continue
-
-        _logger.info('  %s', ocr_date)
-
-        delta = target_date - ocr_date
 
         if delta.total_seconds() > 120:
+            delta = old_delta
             _logger.warning('***Date delta too high frame %s***', frame)
+            continue
+
+        if os.path.exists(image_path):
             continue
 
         new_date = target_date + delta
@@ -160,30 +166,36 @@ def main():
         _logger.info('  Delta: %s  New date: %s', delta, new_date)
 
         if delta.total_seconds() >= 2:
-            _logger.info('Getting corrected frame')
-            transport_file = os.path.join(args.image_dir, 'ts', '{}_cor.ts'.format(frame))
+            transport_file = os.path.join(
+                args.image_dir,
+                'ts',
+                '{}_cor_{}.ts'.format(frame, int(delta.total_seconds()))
+            )
 
-            try:
-                subprocess.check_call([
-                    sys.executable,
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        '..', 'twitch', 'get_vod_clip.py'
-                    ),
-                    args.vod_database,
-                    new_date.isoformat(),
-                    transport_file
-                ])
-            except subprocess.CalledProcessError as error:
-                if error.returncode == 14:
-                    _logger.warning('***Could not get a segment for frame %s***', frame)
-                    continue
-                else:
-                    raise
+            if not os.path.exists(transport_file):
+                _logger.info('Getting corrected frame')
 
-            if os.path.getsize(transport_file) == 0:
-                _logger.warning('***Segment part 2 was 0 sized for frame %s***', frame)
-                continue
+                try:
+                    subprocess.check_call([
+                        sys.executable,
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            '..', 'twitch', 'get_vod_clip.py'
+                        ),
+                        args.vod_database,
+                        new_date.isoformat(),
+                        transport_file
+                    ])
+                except subprocess.CalledProcessError as error:
+                    if error.returncode == 14:
+                        _logger.warning('***Could not get a segment for frame %s***', frame)
+                        continue
+                    else:
+                        raise
+
+        if os.path.getsize(transport_file) == 0:
+            _logger.warning('***Segment part 2 was 0 sized for frame %s***', frame)
+            continue
 
         frame_file = transport_file + '.png'
 
@@ -195,14 +207,25 @@ def main():
 
         _logger.info('Cropping frame')
 
-        image = PIL.Image.open(frame_file)
-        cropped_image = image.crop((
-            int(image.width * 1676 / 1920),
-            int(image.height * 916 / 1080),
-            int(image.width * 1916 / 1920),
-            int(image.height * 1076 / 1080),
-        ))
-        cropped_image.save(image_path)
+        if 22046 <= frame <= 25327:
+            image = PIL.Image.open(frame_file)
+            cropped_image = image.crop((
+                int(image.width * 727 / 1920),
+                int(image.height * 286 / 1080),
+                int(image.width * (727 + 956) / 1920),
+                int(image.height * (286 + 640) / 1080),
+            ))
+            cropped_image = cropped_image.resize((240, 160))
+            cropped_image.save(image_path)
+        else:
+            image = PIL.Image.open(frame_file)
+            cropped_image = image.crop((
+                int(image.width * 1676 / 1920),
+                int(image.height * 916 / 1080),
+                int(image.width * 1916 / 1920),
+                int(image.height * 1076 / 1080),
+            ))
+            cropped_image.save(image_path)
 
     _logger.info('Done!')
 
