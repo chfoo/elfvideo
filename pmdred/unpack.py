@@ -86,7 +86,7 @@ def main():
 
         os.rename(
             os.path.join(args.output_dir, filename),
-            os.path.join(args.output_dir, '{}.png'.format(info['index']))
+            os.path.join(args.output_dir, '{:05d}.png'.format(info['index']))
         )
 
     print('Writing metadata')

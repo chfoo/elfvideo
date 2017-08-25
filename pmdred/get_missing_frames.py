@@ -53,10 +53,11 @@ def main():
     old_delta = None
 
     for frame in missing_frames:
-        image_path = os.path.join(args.image_dir, '{}.v.png'.format(frame))
+        sub_dir_name = '{:02d}'.format(frame // 1000)
+        image_path = os.path.join(args.image_dir, sub_dir_name, '{:05d}.v.png'.format(frame))
 
-        os.makedirs(os.path.join(args.image_dir, 'ts'), exist_ok=True)
-        transport_file = os.path.join(args.image_dir, 'ts', '{}.ts'.format(frame))
+        os.makedirs(os.path.join(args.image_dir, 'ts', sub_dir_name), exist_ok=True)
+        transport_file = os.path.join(args.image_dir, 'ts', sub_dir_name, '{:05d}.ts'.format(frame))
 
         _logger.info('Getting missing frame {}'.format(frame))
 
