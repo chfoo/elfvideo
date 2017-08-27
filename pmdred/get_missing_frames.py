@@ -170,6 +170,7 @@ def main():
             transport_file = os.path.join(
                 args.image_dir,
                 'ts',
+                sub_dir_name,
                 '{}_cor_{}.ts'.format(frame, int(delta.total_seconds()))
             )
 
