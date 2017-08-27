@@ -109,6 +109,14 @@ def main():
             _logger.info('Cropping date time')
 
             image = PIL.Image.open(frame_file)
+
+            if 16375 <= frame <= 16650:
+                # April Fools... ResidentSleeper
+                image = image.rotate(180)
+
+                if 16375 <= frame <= 16367:
+                    image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+
             cropped_image = image.crop((
                 int(image.width * 165 / 1920),
                 int(image.height * 1040 / 1080),
@@ -221,6 +229,14 @@ def main():
             cropped_image.save(image_path)
         else:
             image = PIL.Image.open(frame_file)
+
+            if 16375 <= frame <= 16650:
+                # April Fools... ResidentSleeper
+                image = image.rotate(180)
+
+                if 16375 <= frame <= 16367:
+                    image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+
             cropped_image = image.crop((
                 int(image.width * 1676 / 1920),
                 int(image.height * 916 / 1080),
