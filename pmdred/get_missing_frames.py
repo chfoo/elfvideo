@@ -114,7 +114,7 @@ def main():
                 # April Fools... ResidentSleeper
                 image = image.rotate(180)
 
-                if 16375 <= frame <= 16367:
+                if frame == 16375:
                     image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
 
             cropped_image = image.crop((
@@ -234,7 +234,7 @@ def main():
                 # April Fools... ResidentSleeper
                 image = image.rotate(180)
 
-                if 16375 <= frame <= 16367:
+                if frame == 16375:
                     image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
 
             cropped_image = image.crop((
