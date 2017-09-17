@@ -18,8 +18,6 @@ This will output the video frames which you can encode into a video. ffmpeg can 
 
 ### PMD
 
-**This is work in progress. Not yet complete.**
-
 PMD is a bit more complicated but most of the data is already included or available as a easy download.
 
 Requires in addition:
@@ -47,7 +45,7 @@ Sample ffmpeg command: `ffmpeg -r 12 -i "images/%05d.png" -r 12 -c:v libvpx-vp9 
 
 * Viet crystal: https://archive.org/details/tpp_elf_images
 * Ultra romhack: https://drive.google.com/file/d/0BxXNZYVh03vRQ2R2QWZIUm5kaUU/view?usp=sharing or https://archive.org/details/tpp_ultra_screenshots
-* Pokémon Mystery Dungeon: Red Rescue Team: To be posted
+* Pokémon Mystery Dungeon: Red Rescue Team: https://archive.org/details/tpp_pmd_red_sidegame_screenshots
 
 ## Credits
 
